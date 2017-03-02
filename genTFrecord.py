@@ -1,15 +1,34 @@
+# USAGE
+#  python ./genTFrecord.py <data-dir> <input-vol-regex> <label-vol-regex>
+# EXAMPLE:
+#  python ./genTFrecord.py ./buckner40 'norm' 'aseg' buckner40.tfrecords
+
 import numpy as np
 import tensorflow as tf
 import nibabel as nib
 import os
+import sys
 
-# test dataset
-data_dir = '/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/'
+data_dir = sys.argv[1]
+v_regex  = sys.argv[2]
+l_regex  = sys.argv[3]
+outfile  = sys.argv[4]
 
-#filename_pairs = [os.path.join(data_dir,'114/norm.nii.gz'),os.path.join(data_dir,'144/aseg.nii.gz'),
-#                 os.path.join(data_dir,'091/norm.nii.gz'),os.path.join(data_dir,'091/aseg.nii.gz'),
-#                 os.path.join(data_dir,'130/norm.nii.gz'),os.path.join(data_dir,'130/aseg.nii.gz')]
-filename_pairs = [(os.path.join(data_dir,'114/norm.nii.gz'),os.path.join(data_dir,'144/aseg.nii.gz'))]
+print "data_dir:   ", data_dir
+print "v_regex:    ", v_regex
+print "l_regex:    ", l_regex
+print "outfile:    ", outfile
+
+def listfiles(folder):
+	for root, folders, files in os.walk(folder):
+		for filename in folders + files:
+			yield os.path.join(root, filename)
+
+unfiltered_filelist=list(listfiles(data_dir))
+input_list = [item for item in unfiltered_filelist if re.search(v_regex,item)]
+label_list = [item for item in unfiltered_filelist if re.search(l_regex,item)]
+
+filename_pairs = zip(input_list, label_list)
 
 def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -28,14 +47,14 @@ for v_filename, l_filename in filename_pairs:
 	# The volume, in nifti format	
 	v_nii = nib.load(v_filename)
 	# The volume, in numpy format
-	v_np = v_nii.get_data()
+	v_np = v_nii.get_data().astype('uint16')
 	# The volume, in raw string format
 	v_raw = v_np.tostring()
 
 	# The label, in nifti format
 	l_nii = nib.load(l_filename)
 	# The label, in numpy format
-	l_np = l_nii.get_data()
+	l_np = l_nii.get_data().astype('uint16')
 	# The label, in raw string format
 	l_raw = l_np.tostring()
 
@@ -71,24 +90,16 @@ for string_record in record_iterator:
 	example = tf.train.Example()
 	example.ParseFromString(string_record)
     
-	x_dim = int(example.features.feature['x_dim'].int64_list.value[0])
-    
+	x_dim = int(example.features.feature['x_dim'].int64_list.value[0])    
 	y_dim = int(example.features.feature['y_dim'].int64_list.value[0])
-
-	z_dim = int(example.features.feature['z_dim'].int64_list.value[0])
+	z_dim = int(example.features.feature['z_dim'].int64_list.value[0])    
+	image_raw = (example.features.feature['image_raw'].bytes_list.value[0])    
+	label_raw = (example.features.feature['label_raw'].bytes_list.value[0])
     
-	image_raw = (example.features.feature['image_raw'].bytes_list.value[0])
-    
-	label_raw = (example.features.feature['label_raw']
-                                .bytes_list
-                                .value[0])
-    
-	print x_dim, y_dim, z_dim
-
-	img_1d = np.fromstring(image_raw, dtype=np.uint8)
+	img_1d = np.fromstring(image_raw, dtype=np.uint16)
 	reconstructed_img = img_1d.reshape((x_dim, y_dim, z_dim))
     
-	label_1d = np.fromstring(label_raw, dtype=np.uint8)
+	label_1d = np.fromstring(label_raw, dtype=np.uint16)
 	reconstructed_label = label_1d.reshape((x_dim, y_dim, z_dim))
     
 	reconstructed_images.append((reconstructed_img, reconstructed_label))
@@ -97,12 +108,12 @@ for string_record in record_iterator:
 # Let's check if the reconstructed images match
 # the original images
 
-#for original_pair, reconstructed_pair in zip(original_images, reconstructed_images):
-#    
-#    img_pair_to_compare, annotation_pair_to_compare = zip(original_pair,
-#                                                          reconstructed_pair)
-#    print(np.allclose(*img_pair_to_compare))
-#    print(np.allclose(*annotation_pair_to_compare))
+for original_pair, reconstructed_pair in zip(original_images, reconstructed_images):
+    
+    img_pair_to_compare, annotation_pair_to_compare = zip(original_pair,
+                                                          reconstructed_pair)
+    print(np.allclose(*img_pair_to_compare))
+    print(np.allclose(*annotation_pair_to_compare))
 
 
 
