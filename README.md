@@ -21,4 +21,8 @@ pip install tensorflow
 pip install nibabel
 ```
 
+## Generating a TFrecord
+```
+python ./genTFrecord.py ./buckner40 'norm' 'aseg' buckner40.tfrecords
+```
 
