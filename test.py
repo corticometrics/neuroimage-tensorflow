@@ -1,21 +1,16 @@
 import numpy as np
 import tensorflow as tf
 import nibabel as nib
-
-# >>> img = nib.load(example_filename)
-
-# PW 2017/03/01: Following along here:
-#   http://warmspringwinds.github.io/tensorflow/tf-slim/2016/12/21/tfrecords-guide/
+import os
 
 # test dataset
-#filename_pairs = [
-#('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/norm.nii.gz','/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/aseg.nii.gz'),
-#('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/091/norm.nii.gz','/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/091/aseg.nii.gz'),
-#('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/130/norm.nii.gz','/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/130/aseg.nii.gz')
-#                 ]
-filename_pairs = [
-('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/norm.nii.gz','/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/aseg.nii.gz'),
-                 ]
+data_dir = '/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/'
+
+#filename_pairs = [os.path.join(data_dir,'114/norm.nii.gz'),os.path.join(data_dir,'144/aseg.nii.gz'),
+#                 os.path.join(data_dir,'091/norm.nii.gz'),os.path.join(data_dir,'091/aseg.nii.gz'),
+#                 os.path.join(data_dir,'130/norm.nii.gz'),os.path.join(data_dir,'130/aseg.nii.gz')]
+filename_pairs = [os.path.join(data_dir,'114/norm.nii.gz'),os.path.join(data_dir,'144/aseg.nii.gz')]
+
 
 def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
