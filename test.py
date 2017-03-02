@@ -8,14 +8,15 @@ import nibabel as nib
 #   http://warmspringwinds.github.io/tensorflow/tf-slim/2016/12/21/tfrecords-guide/
 
 # test dataset
+#filename_pairs = [
+#('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/norm.nii.gz','/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/aseg.nii.gz'),
+#('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/091/norm.nii.gz','/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/091/aseg.nii.gz'),
+#('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/130/norm.nii.gz','/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/130/aseg.nii.gz')
+#                 ]
 filename_pairs = [
-('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/norm.nii.gz',
-'/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/aseg.nii.gz'),
-('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/091/norm.nii.gz',
-'/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/091/aseg.nii.gz'),
-('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/130/norm.nii.gz',
-'/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/130/aseg.nii.gz')
+('/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/norm.nii.gz','/home/paul/cmet/brainhack/neuroimage-tensorflow/bucker40/114/aseg.nii.gz'),
                  ]
+
 def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
@@ -73,44 +74,41 @@ record_iterator = tf.python_io.tf_record_iterator(path=tfrecords_filename)
 
 for string_record in record_iterator:
     
-    example = tf.train.Example()
-    example.ParseFromString(string_record)
+	example = tf.train.Example()
+	example.ParseFromString(string_record)
     
-    x_dim = int(example.features.feature['x_dim']
-                                 .int64_list
-                                 .value[0])
+    x_dim = int(example.features.feature['x_dim'].int64_list.value[0])
     
-    y_dim = int(example.features.feature['y_dim']
-                                .int64_list
-                                .value[0])
+    y_dim = int(example.features.feature['y_dim'].int64_list.value[0])
 
-    z_dim = int(example.features.feature['z_dim']
-                                .int64_list
-                                .value[0])
+    z_dim = int(example.features.feature['z_dim'].int64_list.value[0])
     
-    image_raw = (example.features.feature['image_raw']
-                                  .bytes_list
-                                  .value[0])
+    image_raw = (example.features.feature['image_raw'].bytes_list.value[0])
     
     label_raw = (example.features.feature['label_raw']
                                 .bytes_list
                                 .value[0])
     
-    img_1d = np.fromstring(img_string, dtype=np.uint8)
-    reconstructed_img = img_1d.reshape((height, width, -1))
-    
-    annotation_1d = np.fromstring(annotation_string, dtype=np.uint8)
-    
-    # Annotations don't have depth (3rd dimension)
-    reconstructed_annotation = annotation_1d.reshape((height, width))
-    
-    reconstructed_images.append((reconstructed_img, reconstructed_annotation))
-    
+	print x_dim, y_dim, z_dim
 
+    img_1d = np.fromstring(image_raw, dtype=np.uint8)
+    reconstructed_img = img_1d.reshape((x_dim, y_dim, z_dim))
+    
+    label_1d = np.fromstring(label_raw, dtype=np.uint8)
+    reconstructed_label = label_1d.reshape((x_dim, y_dim, z_dim))
+    
+    reconstructed_images.append((reconstructed_img, reconstructed_label))
+ 
 
-# img =  nib.load(filename_pairs[0][0])
+# Let's check if the reconstructed images match
+# the original images
 
-
+for original_pair, reconstructed_pair in zip(original_images, reconstructed_images):
+    
+    img_pair_to_compare, annotation_pair_to_compare = zip(original_pair,
+                                                          reconstructed_pair)
+    print(np.allclose(*img_pair_to_compare))
+    print(np.allclose(*annotation_pair_to_compare))
 
 
 
