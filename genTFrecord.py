@@ -1,13 +1,42 @@
+# Creates a .tfrecord file from a directory of nifti images.
+#   This assumes your niftis are soreted into subdirs by directory, and a regex
+#   can be written to match a volume-filenames and label-filenames
+#
 # USAGE
 #  python ./genTFrecord.py <data-dir> <input-vol-regex> <label-vol-regex>
 # EXAMPLE:
 #  python ./genTFrecord.py ./buckner40 'norm' 'aseg' buckner40.tfrecords
+#
+# Based off of this: 
+#   http://warmspringwinds.github.io/tensorflow/tf-slim/2016/12/21/tfrecords-guide/
 
 # imports
 import numpy as np
 import tensorflow as tf
 import nibabel as nib
 import os, sys, re
+
+def _bytes_feature(value):
+	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+def _int64_feature(value):
+	return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+def listfiles(folder):
+	for root, folders, files in os.walk(folder):
+		for filename in folders + files:
+			yield os.path.join(root, filename)
+
+def gen_filename_pairs(data_dir, v_re, l_re):
+	unfiltered_filelist=list(listfiles(data_dir))
+	input_list = [item for item in unfiltered_filelist if re.search(v_regex,item)]
+	label_list = [item for item in unfiltered_filelist if re.search(l_regex,item)]
+	print "input_list size:    ", len(input_list)
+	print "label_list size:    ", len(label_list)
+	if len(input_list) != len(label_list):
+		print "input_list size and label_list size don't match"
+		raise Exception
+	return zip(input_list, label_list)
 
 # parse args
 data_dir = sys.argv[1]
@@ -19,30 +48,19 @@ print "v_regex:    ", v_regex
 print "l_regex:    ", l_regex
 print "outfile:    ", outfile
 
-def listfiles(folder):
-	for root, folders, files in os.walk(folder):
-		for filename in folders + files:
-			yield os.path.join(root, filename)
+# Generate a list of (volume_filename, label_filename) tuples
+filename_pairs = gen_filename_pairs(data_dir, v_regex, l_regex)
 
-unfiltered_filelist=list(listfiles(data_dir))
-input_list = [item for item in unfiltered_filelist if re.search(v_regex,item)]
-label_list = [item for item in unfiltered_filelist if re.search(l_regex,item)]
+writer = tf.python_io.TFRecordWriter(outfile)
 
-filename_pairs = zip(input_list, label_list)
-
-def _bytes_feature(value):
-	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
-# PW 2017/03/01: Can/Should we get away in uint8?
-def _int64_feature(value):
-	return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
-
-tfrecords_filename = 'buckner40.tfrecords'
-writer = tf.python_io.TFRecordWriter(tfrecords_filename)
 # To compare original to reconstructed images
 original_images = []
 
 for v_filename, l_filename in filename_pairs:
+
+	print "Processing:"
+	print "  volume: ", v_filename
+	print "  label:  ", l_filename
 
 	# The volume, in nifti format	
 	v_nii = nib.load(v_filename)
@@ -63,8 +81,10 @@ for v_filename, l_filename in filename_pairs:
 	y_dim = v_np.shape[1]
 	z_dim = v_np.shape[2]
 
-    # Put in the original images into array for future check for correctness
-	original_images.append((v_np, l_np))
+	# Put in the original images into array for future check for correctness
+	# Uncomment to test (this is a memory hog)
+	########################################
+	# original_images.append((v_np, l_np))
 
 	data_point = tf.train.Example(features=tf.train.Features(feature={
 		'x_dim': _int64_feature(x_dim),
@@ -78,42 +98,38 @@ for v_filename, l_filename in filename_pairs:
 writer.close()
 
 ##############################################################
+#  TEST: Reconstruct images from outfile and compare to originals
+#  Make sure the line `original_images.append((v_np, l_np))` is uncommented above
+##############################################################
+#reconstructed_images = []
 
-# Reconstruct images from 'buckner40.tfrecords' can compare to originals
+#record_iterator = tf.python_io.tf_record_iterator(path=outfile)
 
-reconstructed_images = []
+#for string_record in record_iterator:
+    
+#	example = tf.train.Example()
+#	example.ParseFromString(string_record)
+    
+#	x_dim = int(example.features.feature['x_dim'].int64_list.value[0])    
+#	y_dim = int(example.features.feature['y_dim'].int64_list.value[0])
+#	z_dim = int(example.features.feature['z_dim'].int64_list.value[0])    
+#	image_raw = (example.features.feature['image_raw'].bytes_list.value[0])    
+#	label_raw = (example.features.feature['label_raw'].bytes_list.value[0])
+    
+#	img_1d = np.fromstring(image_raw, dtype=np.uint16)
+#	reconstructed_img = img_1d.reshape((x_dim, y_dim, z_dim))
+    
+#	label_1d = np.fromstring(label_raw, dtype=np.uint16)
+#	reconstructed_label = label_1d.reshape((x_dim, y_dim, z_dim))
+    
+#	reconstructed_images.append((reconstructed_img, reconstructed_label))
 
-record_iterator = tf.python_io.tf_record_iterator(path=tfrecords_filename)
-
-for string_record in record_iterator:
+#for original_pair, reconstructed_pair in zip(original_images, reconstructed_images):
     
-	example = tf.train.Example()
-	example.ParseFromString(string_record)
-    
-	x_dim = int(example.features.feature['x_dim'].int64_list.value[0])    
-	y_dim = int(example.features.feature['y_dim'].int64_list.value[0])
-	z_dim = int(example.features.feature['z_dim'].int64_list.value[0])    
-	image_raw = (example.features.feature['image_raw'].bytes_list.value[0])    
-	label_raw = (example.features.feature['label_raw'].bytes_list.value[0])
-    
-	img_1d = np.fromstring(image_raw, dtype=np.uint16)
-	reconstructed_img = img_1d.reshape((x_dim, y_dim, z_dim))
-    
-	label_1d = np.fromstring(label_raw, dtype=np.uint16)
-	reconstructed_label = label_1d.reshape((x_dim, y_dim, z_dim))
-    
-	reconstructed_images.append((reconstructed_img, reconstructed_label))
- 
-
-# Let's check if the reconstructed images match
-# the original images
-
-for original_pair, reconstructed_pair in zip(original_images, reconstructed_images):
-    
-    img_pair_to_compare, annotation_pair_to_compare = zip(original_pair,
-                                                          reconstructed_pair)
-    print(np.allclose(*img_pair_to_compare))
-    print(np.allclose(*annotation_pair_to_compare))
+#    img_pair_to_compare, annotation_pair_to_compare = zip(original_pair,
+#                                                         reconstructed_pair)
+#    print(np.allclose(*img_pair_to_compare))
+#    print(np.allclose(*annotation_pair_to_compare))
 
 
 
