@@ -3,17 +3,17 @@
 # EXAMPLE:
 #  python ./genTFrecord.py ./buckner40 'norm' 'aseg' buckner40.tfrecords
 
+# imports
 import numpy as np
 import tensorflow as tf
 import nibabel as nib
-import os
-import sys
+import os, sys, re
 
+# parse args
 data_dir = sys.argv[1]
 v_regex  = sys.argv[2]
 l_regex  = sys.argv[3]
 outfile  = sys.argv[4]
-
 print "data_dir:   ", data_dir
 print "v_regex:    ", v_regex
 print "l_regex:    ", l_regex
