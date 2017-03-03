@@ -5,7 +5,7 @@ Goal: Build a tensorflow framework capable of working with 3D neuroimaging data 
 
 ## Sample data
 
-Can be [donwloaded here](https://gate.nmr.mgh.harvard.edu/filedrop2/index.php?p=1m8hsmv9nkj).  This link will expire on March 25th, 2017..
+Can be [downloaded here](https://gate.nmr.mgh.harvard.edu/filedrop2/index.php?p=1m8hsmv9nkj).  This link will expire on March 25th, 2017..
 
 ## Pre-reqs
 
