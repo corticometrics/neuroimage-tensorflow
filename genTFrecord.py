@@ -31,10 +31,10 @@ def gen_filename_pairs(data_dir, v_re, l_re):
 	unfiltered_filelist=list(listfiles(data_dir))
 	input_list = [item for item in unfiltered_filelist if re.search(v_regex,item)]
 	label_list = [item for item in unfiltered_filelist if re.search(l_regex,item)]
-	print "input_list size:    ", len(input_list)
-	print "label_list size:    ", len(label_list)
+	print("input_list size:    ", len(input_list))
+	print("label_list size:    ", len(label_list))
 	if len(input_list) != len(label_list):
-		print "input_list size and label_list size don't match"
+		print("input_list size and label_list size don't match")
 		raise Exception
 	return zip(input_list, label_list)
 
@@ -43,10 +43,10 @@ data_dir = sys.argv[1]
 v_regex  = sys.argv[2]
 l_regex  = sys.argv[3]
 outfile  = sys.argv[4]
-print "data_dir:   ", data_dir
-print "v_regex:    ", v_regex
-print "l_regex:    ", l_regex
-print "outfile:    ", outfile
+print("data_dir:   ", data_dir)
+print("v_regex:    ", v_regex )
+print("l_regex:    ", l_regex )
+print("outfile:    ", outfile )
 
 # Generate a list of (volume_filename, label_filename) tuples
 filename_pairs = gen_filename_pairs(data_dir, v_regex, l_regex)
@@ -58,9 +58,9 @@ original_images = []
 
 for v_filename, l_filename in filename_pairs:
 
-	print "Processing:"
-	print "  volume: ", v_filename
-	print "  label:  ", l_filename
+	print("Processing:")
+	print("  volume: ", v_filename)
+	print("  label:  ", l_filename)
 
 	# The volume, in nifti format	
 	v_nii = nib.load(v_filename)
