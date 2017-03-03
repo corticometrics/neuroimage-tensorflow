@@ -130,14 +130,3 @@ writer.close()
 #                                                         reconstructed_pair)
 #    print(np.allclose(*img_pair_to_compare))
 #    print(np.allclose(*annotation_pair_to_compare))
-
-
-
-
-
-
-
-
-
-
-
