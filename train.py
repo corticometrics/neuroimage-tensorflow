@@ -20,28 +20,22 @@ def _int64_feature(value):
 def read_and_decode(filename_queue):
 	reader = tf.TFRecordReader()
 	_, serialized_example = reader.read(filename_queue)
-	features = tf.parse_single_example(
-		serialized_example,
-		# Defaults are not specified ...
-		features={
-			'x_dim': tf.FixedLenFeature([], tf.int64),
-			'y_dim': tf.FixedLenFeature([], tf.int64),
-			'z_dim': tf.FixedLenFeature([], tf.int64),
-			'image_raw': tf.FixedLenFeature([], tf.string),
-			'label_raw': tf.FixedLenFeature([], tf.string)
-		         })
-
+	features = tf.parse_single_example(serialized_example,features={'x_dim': tf.FixedLenFeature([], tf.int64),'y_dim': tf.FixedLenFeature([], tf.int64),'z_dim': tf.FixedLenFeature([], tf.int64),'image_raw': tf.FixedLenFeature([], tf.string),'label_raw': tf.FixedLenFeature([], tf.string)})
+	
 	image  = tf.decode_raw(features['image_raw'], tf.uint8)
 	labels = tf.decode_raw(features['label_raw'], tf.uint8)
+	
+	#image  = tf.reshape(image, tf.stack([features['x_dim'],features['y_dim'],features['z_dim']]))
+	#labels = tf.reshape(labels, tf.stack([features['x_dim'],features['y_dim'],features['z_dim']]))	
+	image  = tf.reshape(image, [255*255*255])
+	labels = tf.reshape(labels, [255*255*255])	
+	
+	return image, labels
 
-	image  = tf.reshape(image, tf.stack([features['x_dim'],features['y_dim'],features['z_dim']]))
-	labels = tf.reshape(labels, tf.stack([features['x_dim'],features['y_dim'],features['z_dim']]))	
-
-#	image  = tf.reshape(image, tf.stack([x_dim,y_dim,z_dim]))
-#	labels = tf.reshape(labels, tf.stack([x_dim,y_dim,z_dim]))	
 
 def inputs(train, batch_size, num_epochs):
-	"""Reads input data num_epochs times.
+	"""
+		Reads input data num_epochs times.
 		Args:
 			train: Selects between the training (True) and validation (False) data.
 			batch_size: Number of examples per returned batch.
@@ -56,28 +50,24 @@ def inputs(train, batch_size, num_epochs):
     		must be run using e.g. tf.train.start_queue_runners().
 	"""
 	if not num_epochs: num_epochs = None
-    filename = os.path.join(FLAGS.train_dir,
-                          TRAIN_FILE if train else VALIDATION_FILE)
-
-	with tf.name_scope('input'):
+	filename = os.path.join(INPUT_DIR,TRAIN_FILE if train else VALIDATION_FILE)
+	
+	with tf.name_scope('input'): 
 		filename_queue = tf.train.string_input_producer([filename], num_epochs=num_epochs)
 
 	# Even when reading in multiple threads, share the filename queue.
 	image, label = read_and_decode(filename_queue)
 
-    # Shuffle the examples and collect them into batch_size batches.
-    # (Internally uses a RandomShuffleQueue.)
-    # We run this in two threads to avoid being a bottleneck.
-    images, sparse_labels = tf.train.shuffle_batch(
-        [image, label], batch_size=batch_size, num_threads=2,
-        capacity=1000 + 3 * batch_size,
-        # Ensures a minimum amount of shuffling of examples.
-        min_after_dequeue=1000)
+	# Shuffle the examples and collect them into batch_size batches.
+	# (Internally uses a RandomShuffleQueue.)
+	# We run this in two threads to avoid being a bottleneck.
+	images, sparse_labels = tf.train.shuffle_batch([image, label], batch_size=batch_size, num_threads=2,capacity=1000 + 3 * batch_size,min_after_dequeue=1000)
 
-    return images, sparse_labels
+	return images, sparse_labels
 
-#inputs(true, 2, 2)
-filename = os.path.join(INPUT_DIR,TRAIN_FILE)
-with tf.name_scope('input'):
-	filename_queue = tf.train.string_input_producer([filename], num_epochs=1)
-image, label = read_and_decode(filename_queue)
+inputs(True, 2, 2)
+
+#filename = os.path.join(INPUT_DIR,TRAIN_FILE)
+#with tf.name_scope('input'):
+#	filename_queue = tf.train.string_input_producer([filename], num_epochs=1)
+#i, l = read_and_decode(filename_queue)
