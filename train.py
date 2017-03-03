@@ -31,15 +31,15 @@ def read_and_decode(filename_queue):
 			'label_raw': tf.FixedLenFeature([], tf.string)
 		         })
 
-	image = tf.decode_raw(features['image_raw'], tf.uint8)
-	# TODO: Set the shape based on x_dim, y_dim, z_dim
-	image.set_shape(256*256*256)
+	x_dim  = tf.cast(features['x_dim'], tf.int64)
+	y_dim  = tf.cast(features['y_dim'], tf.int64)
+	z_dim  = tf.cast(features['z_dim'], tf.int64)
 
+	image  = tf.decode_raw(features['image_raw'], tf.uint8)
 	labels = tf.decode_raw(features['label_raw'], tf.uint8)
-	# TODO: Set the shape based on x_dim, y_dim, z_dim
-	# TODO: Should this be (n-labels, x_dim, y_dim, z_dim)
-	labels.set_shape(256*256*256)
 
+	image  = tf.reshape(image, tf.stack([x_dim,y_dim,z_dim]))
+	labels = tf.reshape(labels, tf.stack([x_dim,y_dim,z_dim]))	
 
 def inputs(train, batch_size, num_epochs):
 	"""Reads input data num_epochs times.
