@@ -36,8 +36,8 @@ def read_and_decode(filename_queue):
 	features = tf.parse_single_example(serialized_example,features={
 		'image_raw': tf.FixedLenFeature([], tf.string),
 		'label_raw': tf.FixedLenFeature([], tf.string)})
-	image  = tf.cast(tf.decode_raw(features['image_raw'], tf.uint8), tf.float32)
-	labels = tf.decode_raw(features['label_raw'], tf.uint8)
+	image  = tf.cast(tf.decode_raw(features['image_raw'], tf.int16), tf.float32)
+	labels = tf.decode_raw(features['label_raw'], tf.int16)
 	
 	#PW 2017/03/03: Zero-center data here?
 	image.set_shape([IMAGE_PIXELS])

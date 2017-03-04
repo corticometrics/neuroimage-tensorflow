@@ -79,7 +79,7 @@ for v_filename, l_filename in filename_pairs:
 	# The volume, in nifti format	
 	v_nii = nib.load(v_filename)
 	# The volume, in numpy format
-	v_np = v_nii.get_data().astype('uint16')
+	v_np = v_nii.get_data().astype('int16')
 	# The volume, in raw string format
 	v_np = crop_brain(v_np)
 	# The volume, in raw string format
@@ -88,7 +88,7 @@ for v_filename, l_filename in filename_pairs:
 	# The label, in nifti format
 	l_nii = nib.load(l_filename)
 	# The label, in numpy format
-	l_np = l_nii.get_data().astype('uint16')
+	l_np = l_nii.get_data().astype('int16')
 	# Preprocess the volume
 	l_np = preproc_brain(l_np)
 	# The label, in raw string format
