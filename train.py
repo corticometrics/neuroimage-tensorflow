@@ -262,7 +262,7 @@ def run_training():
 		summary_op = tf.summary.merge_all()
 		# init to setup the initial values of the weights
 		#init_op = tf.group(tf.initialize_all_variables(),tf.initialize_local_variables())
-		init_op = tf.group(tf.initialize_all_variables(),tf.local_variables_initializer())
+		init_op = tf.group(tf.global_variables_initializer(),tf.local_variables_initializer())
 		# setup a saver for saving checkpoints
 		saver = tf.train.Saver()
 		# create the session
