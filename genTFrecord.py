@@ -22,6 +22,20 @@ def _bytes_feature(value):
 def _int64_feature(value):
 	return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
+def select_hipp(x):
+	x[x != 17] = 0
+	x[x == 17] = 1
+	return x
+
+def crop_brain(x):
+    x = x[90:130,90:130,90:130] #should take volume zoomed in on hippocampus area
+    return x
+
+def preproc_brain(x):
+	x = select_hipp(x)
+   	#x = crop_brain(x)   
+    return x
+
 def listfiles(folder):
 	for root, folders, files in os.walk(folder):
 		for filename in folders + files:
@@ -60,7 +74,7 @@ for v_filename, l_filename in filename_pairs:
 
 	print("Processing:")
 	print("  volume: ", v_filename)
-	print("  label:  ", l_filename)
+	print("  label:  ", l_filename)	
 
 	# The volume, in nifti format	
 	v_nii = nib.load(v_filename)
@@ -73,6 +87,8 @@ for v_filename, l_filename in filename_pairs:
 	l_nii = nib.load(l_filename)
 	# The label, in numpy format
 	l_np = l_nii.get_data().astype('uint16')
+	# Preprocess the volume
+	l_np = preproc_brain(l_np)
 	# The label, in raw string format
 	l_raw = l_np.tostring()
 
@@ -80,6 +96,7 @@ for v_filename, l_filename in filename_pairs:
 	x_dim = v_np.shape[0]
 	y_dim = v_np.shape[1]
 	z_dim = v_np.shape[2]
+	print("DIMS: " + str(x_dim) + str(y_dim) + str(z_dim))
 
 	# Put in the original images into array for future check for correctness
 	# Uncomment to test (this is a memory hog)
