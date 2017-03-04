@@ -155,26 +155,25 @@ def inference(images):
 
 def loss(logits, labels):
     
-    # input:  logits: Logits tensor, float - [batch_size, 256, 256, 256, 2].
-    # intput: labels: Labels tensor, int32 - [batch_size, 256, 256, 256].
-    # output: loss: Loss tensor of type float.
+	# input:  logits: Logits tensor, float - [batch_size, 256, 256, 256, 2].
+	# intput: labels: Labels tensor, int32 - [batch_size, 256, 256, 256].
+	# output: loss: Loss tensor of type float.
 
-    labels = tf.to_int64(labels)
-    print_tensor_shape( logits, 'logits shape before')
-    print_tensor_shape( labels, 'labels shape before')
+	labels = tf.to_int64(labels)
+	print_tensor_shape( logits, 'logits shape before')
+	print_tensor_shape( labels, 'labels shape before')
 
-# reshape to match args required for the cross entropy function
-    logits_re = tf.reshape( logits, [-1, 2] )
-    labels_re = tf.reshape( labels, [-1] )
-    print_tensor_shape( logits, 'logits shape after')
-    print_tensor_shape( labels, 'labels shape after')
+	# reshape to match args required for the cross entropy function
+	logits_re = tf.reshape( logits, [-1, 2] )
+	labels_re = tf.reshape( labels, [-1] )
+	print_tensor_shape( logits, 'logits shape after')
+	print_tensor_shape( labels, 'labels shape after')
 
-# call cross entropy with logits
-    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-         logits, labels, name='cross_entropy')
+	# call cross entropy with logits
+	cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels, name='cross_entropy')
 
-    loss = tf.reduce_mean(cross_entropy, name='1cnn_cross_entropy_mean')
-    return loss
+	loss = tf.reduce_mean(cross_entropy, name='1cnn_cross_entropy_mean')
+	return loss
 
 ################################################
 
