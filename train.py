@@ -10,8 +10,8 @@ import os
 INPUT_DIR='./'
 TRAIN_FILE='b40-train.tfrecords'
 VALIDATION_FILE=''
-IMAGE_PIXELS=255*255*255
-IMAGE_PIXELS_3D_SINGLE_CHAN=[255,255,255,1]
+IMAGE_PIXELS=256*256*256
+IMAGE_PIXELS_3D_SINGLE_CHAN=[256,256,256,1]
 NUM_CLASSES=2
 BATCH_SIZE=2
 NUM_EPOCHS=2
@@ -42,7 +42,7 @@ def read_and_decode(filename_queue):
 	image  = tf.reshape(image, IMAGE_PIXELS_3D_SINGLE_CHAN)
 	
 	labels.set_shape([IMAGE_PIXELS])
-	labels  = tf.reshape(image, [255,255,255])
+	labels  = tf.reshape(image, [256,256,256])
 	
 	# Dimensions (X, Y, Z, channles)
 	return image, labels
@@ -167,15 +167,18 @@ def loss(logits, labels):
 	print_tensor_shape( labels, 'labels shape ')
 
 	# reshape to match args required for the cross entropy function
-	#logits_re = tf.reshape( logits, [-1, 2] )
-	#labels_re = tf.reshape( labels, [-1] )
-	#print_tensor_shape( logits, 'logits shape after')
-	#print_tensor_shape( labels, 'labels shape after')
+	logits_re = tf.reshape( logits, [-1, 2] )
+	labels_re = tf.reshape( labels, [-1] )
+	#print_tensor_shape( logits_re, 'logits shape after')
+	#print_tensor_shape( labels_re, 'labels shape after')
 
 	# call cross entropy with logits
-	cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels, name='cross_entropy')
+	cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits_re, labels=labels_re, name='cross_entropy')
+	print_tensor_shape( cross_entropy, 'cross_entropy shape ')
 
 	loss = tf.reduce_mean(cross_entropy, name='1cnn_cross_entropy_mean')
+	print_tensor_shape( loss, 'loss shape ')
+
 	return loss
 
 
@@ -208,6 +211,7 @@ def training(loss, learning_rate, decay_steps, decay_rate):
 
 	# Use the optimizer to apply the gradients that minimize the loss
 	# (and also increment the global step counter) as a single training step.
+	print_tensor_shape( loss, 'loss shape ')
 	train_op = optimizer.minimize(loss, global_step=global_step)
 
 	return train_op
@@ -248,4 +252,5 @@ with tf.Graph().as_default():
 	print_tensor_shape(labels, 'labels shape')
 	logits = inference(images)
 	loss = loss(logits, labels)
-	training(loss, LEARNING_RATE, DECAY_STEPS, DECAY_RATE)
+	print_tensor_shape( loss, 'loss shape ')
+	#training(loss, LEARNING_RATE, DECAY_STEPS, DECAY_RATE)
