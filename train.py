@@ -15,9 +15,9 @@ IMAGE_PIXELS_3D_SINGLE_CHAN=[255,255,255,1]
 NUM_CLASSES=2
 BATCH_SIZE=2
 NUM_EPOCHS=2
-DECAY_STEPS=1
-DECAY_RATE=1
-LEARNING_RATE=1
+DECAY_STEPS=1.0
+DECAY_RATE=1.0
+LEARNING_RATE=1.0
 
 def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
