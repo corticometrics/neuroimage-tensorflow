@@ -5,7 +5,7 @@
 #  https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/how_tos/reading_data/convert_to_records.py
 
 import tensorflow as tf
-import os
+import os, time
 
 INPUT_DIR='./'
 TRAIN_FILE='b40-train.tfrecords'
@@ -18,6 +18,7 @@ NUM_EPOCHS=2
 DECAY_STEPS=1.0
 DECAY_RATE=1.0
 LEARNING_RATE=1.0
+CHECKPOINT_DIR='./temp'
 
 def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -48,7 +49,7 @@ def read_and_decode(filename_queue):
 	return image, labels
 
 
-def inputs(train, batch_size, num_epochs):
+def inputs(train, batch_size, num_epochs, filename):
 	"""
 		Reads input data num_epochs times.
 		Args:
@@ -65,7 +66,6 @@ def inputs(train, batch_size, num_epochs):
 			must be run using e.g. tf.train.start_queue_runners().
 	"""
 	if not num_epochs: num_epochs = None
-	filename = os.path.join(INPUT_DIR,TRAIN_FILE if train else VALIDATION_FILE)
 	
 	with tf.name_scope('input'): 
 		filename_queue = tf.train.string_input_producer([filename], num_epochs=num_epochs)
@@ -85,16 +85,16 @@ def inputs(train, batch_size, num_epochs):
 def inference(images):	    
 	# Convolution layer (https://www.tensorflow.org/api_docs/python/tf/nn/conv3d)
 	# tf.nn.conv3d(input, filter, strides, padding, name=None)
-    #    input shape: [batch, depth, height, width, in_channels]
+	#    input shape: [batch, depth, height, width, in_channels]
 	#  	 filter shape: [filter_depth, filter_height, filter_width, in_channels, out_channels]
-    #    strides shape [1, ?, ?, ?, 1]
-
-   	# Pool layer (https://www.tensorflow.org/api_docs/python/tf/nn/max_pool3d)
+	#    strides shape [1, ?, ?, ?, 1]
+	
+	# Pool layer (https://www.tensorflow.org/api_docs/python/tf/nn/max_pool3d)
 	# tf.nn.max_pool3d(input, ksize, strides, padding, name=None)
-    #    input shape: [batch, depth, height, width, channels]
+	#    input shape: [batch, depth, height, width, channels]
 	#    ksize: The size of the window for each dimension of the input tensor. 
-    #           Must have ksize[0] = ksize[4] = 1
-    #    strides shape [1, ?, ?, ?, 1]
+	#           Must have ksize[0] = ksize[4] = 1
+	#    strides shape [1, ?, ?, ?, 1]
  
 	print_tensor_shape( images, 'images shape inference' )
 	with tf.name_scope('Conv1'):
@@ -132,8 +132,8 @@ def inference(images):
 		relu4_op = tf.nn.relu( conv4_op, name='relu4_op' )
 		print_tensor_shape( relu4_op, 'relu4_op shape')
 		# optional dropout node.  when set to 1.0 nothing is dropped out
-        drop_op = tf.nn.dropout( relu4_op, 1.0 )
-        print_tensor_shape( drop_op, 'drop_op shape' )
+		drop_op = tf.nn.dropout( relu4_op, 1.0 )
+		print_tensor_shape( drop_op, 'drop_op shape' )
 	# Conv layer to generate the 2 score classes
 	with tf.name_scope('Score_classes'):
 		W_score_classes = tf.Variable(tf.truncated_normal([1,1,1,200,2],stddev=0.1,dtype=tf.float32),name='W_score_classes')
@@ -153,35 +153,33 @@ def inference(images):
 #		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,256,256,256,2],strides=[1,16,16,16,1],padding='SAME',name='upscore_conv_op')
 		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,256,256,256,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
 #		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[1,256,256,256,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
-
-        print_tensor_shape(upscore_conv_op, 'upscore_conv_op shape')
-
+		print_tensor_shape(upscore_conv_op, 'upscore_conv_op shape')
+	
 	return upscore_conv_op
 
 
-def loss(logits, labels):
-    
+def loss_fn(logits, labels):	    
 	# input:  logits: Logits tensor, float - [batch_size, 256, 256, 256, 2].
 	# intput: labels: Labels tensor, int8 - [batch_size, 256, 256, 256].
 	# output: loss: Loss tensor of type float.
-
+	
 	labels = tf.to_int64(labels)
 	print_tensor_shape( logits, 'logits shape ')
 	print_tensor_shape( labels, 'labels shape ')
-
+	
 	# reshape to match args required for the cross entropy function
 	logits_re = tf.reshape( logits, [-1, 2] )
 	labels_re = tf.reshape( labels, [-1] )
 	#print_tensor_shape( logits_re, 'logits shape after')
 	#print_tensor_shape( labels_re, 'labels shape after')
-
+	
 	# call cross entropy with logits
 	cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels, name='cross_entropy')
 	print_tensor_shape( cross_entropy, 'cross_entropy shape ')
-
+	
 	loss = tf.reduce_mean(cross_entropy, name='1cnn_cross_entropy_mean')
 	print_tensor_shape( loss, 'loss shape ')
-
+	
 	return loss
 
 
@@ -189,20 +187,20 @@ def training(loss, learning_rate, decay_steps, decay_rate):
 	# input: loss: loss tensor from loss()
 	# input: learning_rate: scalar for gradient descent
 	# output: train_op the operation for training
-
+	
 	#    Creates a summarizer to track the loss over time in TensorBoard.
 	#    Creates an optimizer and applies the gradients to all trainable variables.
-
+	
 	#    The Op returned by this function is what must be passed to the
 	#    `sess.run()` call to cause the model to train.
-
+	
 	# Add a scalar summary for the snapshot loss.
 	#tf.scalar_summary(loss.op.name, loss)
 	tf.summary.scalar(loss.op.name, loss)
-
+	
 	# Create a variable to track the global step.
 	global_step = tf.Variable(0, name='global_step', trainable=False)
-
+	
 	# create learning_decay
 	lr = tf.train.exponential_decay( learning_rate,global_step,decay_steps,decay_rate, staircase=True )
 	#tf.scalar_summary('1learning_rate', lr )
@@ -211,12 +209,12 @@ def training(loss, learning_rate, decay_steps, decay_rate):
 	# Create the gradient descent optimizer with the given learning rate.
 	#    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
 	optimizer = tf.train.GradientDescentOptimizer(lr)
-
+	
 	# Use the optimizer to apply the gradients that minimize the loss
 	# (and also increment the global step counter) as a single training step.
 	print_tensor_shape( loss, 'loss shape ')
 	train_op = optimizer.minimize(loss, global_step=global_step)
-
+	
 	return train_op
 
 def evaluation(logits, labels):
@@ -224,18 +222,18 @@ def evaluation(logits, labels):
 	# input: labels: Labels tensor, int8 - [batch_size, 256, 256, 256]
 	# output: scaler int32 tensor with number of examples that were 
 	#         predicted correctly
-
+	
 	with tf.name_scope('eval'):
 		labels = tf.to_int64(labels)
 		print_tensor_shape( logits, 'logits eval shape before')
 		print_tensor_shape( labels, 'labels eval shape before')
-
+		
 		# reshape to match args required for the cross entropy function
 		logits_re = tf.reshape( logits, [-1, 2] )
 		labels_re = tf.reshape( labels, [-1] )
 		print_tensor_shape( logits, 'logits eval shape after')
 		print_tensor_shape( labels, 'labels eval shape after')
-
+		
 		# For a classifier model, we can use the in_top_k Op.
 		# It returns a bool tensor with shape [batch_size] that is true for
 		# the examples where the label is in the top k (here k=1)
@@ -243,19 +241,71 @@ def evaluation(logits, labels):
 		#correct = tf.nn.in_top_k(logits_re, labels_re, 1)
 		correct = tf.nn.in_top_k(logits_re, labels_re, 1)
 		print_tensor_shape( correct, 'correct shape')
-
+		
 		# Return the number of true entries.
-        return tf.reduce_sum(tf.cast(correct, tf.int32))
+		return tf.reduce_sum(tf.cast(correct, tf.int32))
 
 ################################################
 
-with tf.Graph().as_default():
-	# Input images and labels.
-	images, labels = inputs(train=True, batch_size=BATCH_SIZE,num_epochs=NUM_EPOCHS)
-	print_tensor_shape(images, 'images shape')
-	print_tensor_shape(labels, 'labels shape')
-	logits = inference(images)
-	loss = loss(logits, labels)
-	print_tensor_shape( loss, 'loss shape ')
-	train_op = training(loss, LEARNING_RATE, DECAY_STEPS, DECAY_RATE)
-	evaluation(logits, labels)
+def run_training():
+	with tf.Graph().as_default():
+		# specify the training data file location
+		trainfile = os.path.join(INPUT_DIR,TRAIN_FILE)
+		images, labels = inputs(train=True, batch_size=BATCH_SIZE,num_epochs=NUM_EPOCHS, filename=trainfile)
+		# run inference on the images
+		results = inference(images)
+		# calculate the loss from the results of inference and the labels
+		loss = loss_fn(results, labels)
+		# setup the training operations
+		train_op = training(loss, LEARNING_RATE, DECAY_STEPS, DECAY_RATE)
+		# setup the summary ops to use TensorBoard
+		summary_op = tf.summary.merge_all()
+		# init to setup the initial values of the weights
+		init_op = tf.group(tf.initialize_all_variables(),tf.initialize_local_variables())
+		# setup a saver for saving checkpoints
+		saver = tf.train.Saver()
+		# create the session
+		sess = tf.Session()
+		# specify where to write the log files for import to TensorBoard
+		summary_writer = tf.summary.FileWriter(CHECKPOINT_DIR,sess.graph)
+		# initialize the graph
+		sess.run(init_op)
+		# setup the coordinato and threadsr.  Used for multiple threads to read data.  
+		# Not strictly required since we don't have a lot of data but typically 
+		# using multiple threads to read data improves performance
+		coord = tf.train.Coordinator()
+		threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+		# loop will continue until we run out of input training cases
+		try:
+			step = 0
+			while not coord.should_stop():
+				# start time and run one training iteration
+				start_time = time.time()
+				_, loss_value = sess.run([train_op, loss])
+				duration = time.time() - start_time
+				
+				# print some output periodically
+				if step % 100 == 0:
+					print('OUTPUT: Step %d: loss = %.3f (%.3f sec)' % (step,loss_value,duration))
+					# output some data to the log files for tensorboard
+					summary_str = sess.run(summary_op)
+					summary_writer.add_summary(summary_str, step)
+					summary_writer.flush()
+				# less frequently output checkpoint files.  Used for evaluating the model
+				if step % 1000 == 0:
+					checkpoint_path = os.path.join(CHECKPOINT_DIR, 'model.ckpt')
+					saver.save(sess, checkpoint_path, global_step=step)
+				step += 1
+		# quit after we run out of input files to read
+		except tf.errors.OutOfRangeError:
+			print('OUTPUT: Done training for %d epochs, %d steps.' % (NUM_EPOCHS,step))
+			checkpoint_path = os.path.join(CHECKPOINT_DIR, 'model.ckpt')
+			saver.save(sess, checkpoint_path, global_step=step)
+		finally:
+			coord.request_stop()
+		# shut down the threads gracefully
+		coord.join(threads)
+		sess.close()
+
+run_training()
+
