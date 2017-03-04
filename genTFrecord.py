@@ -33,7 +33,7 @@ def crop_brain(x):
 
 def preproc_brain(x):
 	x = select_hipp(x)
-	x = crop_brain(x)   
+	#x = crop_brain(x)   
 	return x
 
 def listfiles(folder):
@@ -81,7 +81,7 @@ for v_filename, l_filename in filename_pairs:
 	# The volume, in numpy format
 	v_np = v_nii.get_data().astype('int16')
 	# The volume, in raw string format
-	v_np = crop_brain(v_np)
+	#v_np = crop_brain(v_np)
 	# The volume, in raw string format
 	v_raw = v_np.tostring()
 
