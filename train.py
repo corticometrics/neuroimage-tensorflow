@@ -10,8 +10,8 @@ import os, time
 INPUT_DIR='./'
 TRAIN_FILE='b40-train.tfrecords'
 VALIDATION_FILE=''
-IMAGE_PIXELS=256*256*256
-IMAGE_PIXELS_3D_SINGLE_CHAN=[256,256,256,1]
+IMAGE_PIXELS=40*40*40
+IMAGE_PIXELS_3D_SINGLE_CHAN=[40,40,40,1]
 NUM_CLASSES=2
 BATCH_SIZE=2
 NUM_EPOCHS=2
@@ -44,7 +44,7 @@ def read_and_decode(filename_queue):
 	image  = tf.reshape(image, IMAGE_PIXELS_3D_SINGLE_CHAN)
 	
 	labels.set_shape([IMAGE_PIXELS])
-	labels  = tf.reshape(image, [256,256,256])
+	labels  = tf.reshape(image, [40,40,40])
 	
 	# Dimensions (X, Y, Z, channles)
 	return image, labels
@@ -152,7 +152,7 @@ def inference(images):
 		W_upscore = tf.Variable(tf.truncated_normal([31,31,31,2,2],stddev=0.1,dtype=tf.float32),name='W_upscore')
 		print_tensor_shape( W_upscore, 'W_upscore shape')
 #		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,256,256,256,2],strides=[1,16,16,16,1],padding='SAME',name='upscore_conv_op')
-		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,256,256,256,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
+		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,40,40,40,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
 #		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[1,256,256,256,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
 		print_tensor_shape(upscore_conv_op, 'upscore_conv_op shape')
 	
