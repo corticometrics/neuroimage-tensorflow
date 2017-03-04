@@ -15,6 +15,9 @@ IMAGE_PIXELS_3D_SINGLE_CHAN=[255,255,255,1]
 NUM_CLASSES=2
 BATCH_SIZE=2
 NUM_EPOCHS=2
+DECAY_STEPS=1
+DECAY_RATE=1
+LEARNING_RATE=1
 
 def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -39,7 +42,7 @@ def read_and_decode(filename_queue):
 	image  = tf.reshape(image, IMAGE_PIXELS_3D_SINGLE_CHAN)
 	
 	labels.set_shape([IMAGE_PIXELS])
-	labels  = tf.reshape(image, IMAGE_PIXELS_3D_SINGLE_CHAN)
+	labels  = tf.reshape(image, [255,255,255])
 	
 	# Dimensions (X, Y, Z, channles)
 	return image, labels
@@ -156,24 +159,85 @@ def inference(images):
 def loss(logits, labels):
     
 	# input:  logits: Logits tensor, float - [batch_size, 256, 256, 256, 2].
-	# intput: labels: Labels tensor, int32 - [batch_size, 256, 256, 256].
+	# intput: labels: Labels tensor, int8 - [batch_size, 256, 256, 256].
 	# output: loss: Loss tensor of type float.
 
 	labels = tf.to_int64(labels)
-	print_tensor_shape( logits, 'logits shape before')
-	print_tensor_shape( labels, 'labels shape before')
+	print_tensor_shape( logits, 'logits shape ')
+	print_tensor_shape( labels, 'labels shape ')
 
 	# reshape to match args required for the cross entropy function
-	logits_re = tf.reshape( logits, [-1, 2] )
-	labels_re = tf.reshape( labels, [-1] )
-	print_tensor_shape( logits, 'logits shape after')
-	print_tensor_shape( labels, 'labels shape after')
+	#logits_re = tf.reshape( logits, [-1, 2] )
+	#labels_re = tf.reshape( labels, [-1] )
+	#print_tensor_shape( logits, 'logits shape after')
+	#print_tensor_shape( labels, 'labels shape after')
 
 	# call cross entropy with logits
-	cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels, name='cross_entropy')
+	cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels, name='cross_entropy')
 
 	loss = tf.reduce_mean(cross_entropy, name='1cnn_cross_entropy_mean')
 	return loss
+
+
+def training(loss, learning_rate, decay_steps, decay_rate):
+	# input: loss: loss tensor from loss()
+	# input: learning_rate: scalar for gradient descent
+	# output: train_op the operation for training
+
+	#    Creates a summarizer to track the loss over time in TensorBoard.
+	#    Creates an optimizer and applies the gradients to all trainable variables.
+
+	#    The Op returned by this function is what must be passed to the
+	#    `sess.run()` call to cause the model to train.
+
+	# Add a scalar summary for the snapshot loss.
+	#tf.scalar_summary(loss.op.name, loss)
+	tf.summary.scalar(loss.op.name, loss)
+
+	# Create a variable to track the global step.
+	global_step = tf.Variable(0, name='global_step', trainable=False)
+
+	# create learning_decay
+	lr = tf.train.exponential_decay( learning_rate,global_step,decay_steps,decay_rate, staircase=True )
+	#tf.scalar_summary('1learning_rate', lr )
+	tf.summary.scalar('learning_rate', lr )
+	
+	# Create the gradient descent optimizer with the given learning rate.
+	#    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+	optimizer = tf.train.GradientDescentOptimizer(lr)
+
+	# Use the optimizer to apply the gradients that minimize the loss
+	# (and also increment the global step counter) as a single training step.
+	train_op = optimizer.minimize(loss, global_step=global_step)
+
+	return train_op
+
+def evaluation(logits, labels):
+	# input: logits: Logits tensor, float - [batch_size, 256, 256, 256, NUM_CLASSES].
+	# input: labels: Labels tensor, int8 - [batch_size, 256, 256, 256]
+	# output: scaler int32 tensor with number of examples that were 
+	#         predicted correctly
+
+	with tf.name_scope('eval'):
+		labels = tf.to_int64(labels)
+		print_tensor_shape( logits, 'logits eval shape before')
+		print_tensor_shape( labels, 'labels eval shape before')
+
+		# reshape to match args required for the cross entropy function
+		logits_re = tf.reshape( logits, [-1, 2] )
+		labels_re = tf.reshape( labels, [-1] )
+		print_tensor_shape( logits, 'logits eval shape after')
+		print_tensor_shape( labels, 'labels eval shape after')
+
+		# For a classifier model, we can use the in_top_k Op.
+		# It returns a bool tensor with shape [batch_size] that is true for
+		# the examples where the label is in the top k (here k=1)
+		# of all logits for that example.
+		correct = tf.nn.in_top_k(logits_re, labels_re, 1)
+		print_tensor_shape( correct, 'correct shape')
+
+		# Return the number of true entries.
+        return tf.reduce_sum(tf.cast(correct, tf.int32))
 
 ################################################
 
@@ -182,4 +246,6 @@ with tf.Graph().as_default():
 	images, labels = inputs(train=True, batch_size=BATCH_SIZE,num_epochs=NUM_EPOCHS)
 	print_tensor_shape(images, 'images shape')
 	print_tensor_shape(labels, 'labels shape')
-	inference(images)
+	logits = inference(images)
+	loss = loss(logits, labels)
+	training(loss, LEARNING_RATE, DECAY_STEPS, DECAY_RATE)
