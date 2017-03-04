@@ -13,6 +13,8 @@ VALIDATION_FILE=''
 IMAGE_PIXELS=255*255*255
 IMAGE_PIXELS_3D_SINGLE_CHAN=[255,255,255,1]
 NUM_CLASSES=2
+BATCH_SIZE=2
+NUM_EPOCHS=2
 
 def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -39,6 +41,7 @@ def read_and_decode(filename_queue):
 	labels.set_shape([IMAGE_PIXELS])
 	labels  = tf.reshape(image, IMAGE_PIXELS_3D_SINGLE_CHAN)
 	
+	# Dimensions (X, Y, Z, channles)
 	return image, labels
 
 
@@ -72,6 +75,7 @@ def inputs(train, batch_size, num_epochs):
 	# We run this in two threads to avoid being a bottleneck.
 	images, sparse_labels = tf.train.shuffle_batch([image, label], batch_size=batch_size, num_threads=2,capacity=1000 + 3 * batch_size,min_after_dequeue=1000)
 	
+	# Dimensions (batchsize, X, Y, Z, channles)
 	return images, sparse_labels
 
 
@@ -133,7 +137,7 @@ def inference(images):
 		print_tensor_shape( W_score_classes, 'W_score_classes_shape')
 		score_classes_conv_op = tf.nn.conv3d( drop_op, W_score_classes,strides=[1,1,1,1,1], padding='SAME', name='score_classes_conv_op')
 		print_tensor_shape( score_classes_conv_op,'score_conv_op shape')
-	# Upscore the results to 256x256x256x2 image
+	# Upscore the results to 1x256x256x256x2 image
 	#  Deconv3d https://www.tensorflow.org/api_docs/python/tf/nn/conv3d_transpose
 	#   tf.nn.conv3d_transpose(value, filter, output_shape, strides, padding='SAME', name=None)
     #     value: A 5-D Tensor of type float and shape [batch, depth, height, width, in_channels]
@@ -143,16 +147,40 @@ def inference(images):
 	with tf.name_scope('Upscore'):
 		W_upscore = tf.Variable(tf.truncated_normal([31,31,31,2,2],stddev=0.1,dtype=tf.float32),name='W_upscore')
 		print_tensor_shape( W_upscore, 'W_upscore shape')
-		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[1,256,256,256,2],strides=[1,16,16,16,1],padding='SAME',name='upscore_conv_op')
+		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,256,256,256,2],strides=[1,16,16,16,1],padding='SAME',name='upscore_conv_op')
         print_tensor_shape(upscore_conv_op, 'upscore_conv_op shape')
 
 	return upscore_conv_op
+
+
+def loss(logits, labels):
+    
+    # input:  logits: Logits tensor, float - [batch_size, 256, 256, 256, 2].
+    # intput: labels: Labels tensor, int32 - [batch_size, 256, 256, 256].
+    # output: loss: Loss tensor of type float.
+
+    labels = tf.to_int64(labels)
+    print_tensor_shape( logits, 'logits shape before')
+    print_tensor_shape( labels, 'labels shape before')
+
+# reshape to match args required for the cross entropy function
+    logits_re = tf.reshape( logits, [-1, 2] )
+    labels_re = tf.reshape( labels, [-1] )
+    print_tensor_shape( logits, 'logits shape after')
+    print_tensor_shape( labels, 'labels shape after')
+
+# call cross entropy with logits
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
+         logits, labels, name='cross_entropy')
+
+    loss = tf.reduce_mean(cross_entropy, name='1cnn_cross_entropy_mean')
+    return loss
 
 ################################################
 
 with tf.Graph().as_default():
 	# Input images and labels.
-	images, labels = inputs(train=True, batch_size=2,num_epochs=2)
+	images, labels = inputs(train=True, batch_size=BATCH_SIZE,num_epochs=NUM_EPOCHS)
 	print_tensor_shape(images, 'images shape')
 	print_tensor_shape(labels, 'labels shape')
 	inference(images)
