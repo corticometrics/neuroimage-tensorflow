@@ -28,13 +28,13 @@ def select_hipp(x):
 	return x
 
 def crop_brain(x):
-    x = x[90:130,90:130,90:130] #should take volume zoomed in on hippocampus area
-    return x
+	x = x[90:130,90:130,90:130] #should take volume zoomed in on hippocampus area
+	return x
 
 def preproc_brain(x):
 	x = select_hipp(x)
-   	#x = crop_brain(x)   
-    return x
+	#x = crop_brain(x)   
+	return x
 
 def listfiles(folder):
 	for root, folders, files in os.walk(folder):
@@ -104,9 +104,6 @@ for v_filename, l_filename in filename_pairs:
 	# original_images.append((v_np, l_np))
 
 	data_point = tf.train.Example(features=tf.train.Features(feature={
-		'x_dim': _int64_feature(x_dim),
-		'y_dim': _int64_feature(y_dim),
-		'z_dim': _int64_feature(z_dim),
 		'image_raw': _bytes_feature(v_raw),
 		'label_raw': _bytes_feature(l_raw)}))
     

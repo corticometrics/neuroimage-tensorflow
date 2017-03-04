@@ -33,8 +33,9 @@ def print_tensor_shape(tensor, string):
 def read_and_decode(filename_queue):
 	reader = tf.TFRecordReader()
 	_, serialized_example = reader.read(filename_queue)
-	features = tf.parse_single_example(serialized_example,features={'x_dim': tf.FixedLenFeature([], tf.int64),'y_dim': tf.FixedLenFeature([], tf.int64),'z_dim': tf.FixedLenFeature([], tf.int64),'image_raw': tf.FixedLenFeature([], tf.string),'label_raw': tf.FixedLenFeature([], tf.string)})
-	
+	features = tf.parse_single_example(serialized_example,features={
+		'image_raw': tf.FixedLenFeature([], tf.string),
+		'label_raw': tf.FixedLenFeature([], tf.string)})
 	image  = tf.cast(tf.decode_raw(features['image_raw'], tf.uint8), tf.float32)
 	labels = tf.decode_raw(features['label_raw'], tf.uint8)
 	
