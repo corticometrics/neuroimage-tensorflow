@@ -150,7 +150,10 @@ def inference(images):
 	with tf.name_scope('Upscore'):
 		W_upscore = tf.Variable(tf.truncated_normal([31,31,31,2,2],stddev=0.1,dtype=tf.float32),name='W_upscore')
 		print_tensor_shape( W_upscore, 'W_upscore shape')
-		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,256,256,256,2],strides=[1,16,16,16,1],padding='SAME',name='upscore_conv_op')
+#		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,256,256,256,2],strides=[1,16,16,16,1],padding='SAME',name='upscore_conv_op')
+		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,256,256,256,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
+#		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[1,256,256,256,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
+
         print_tensor_shape(upscore_conv_op, 'upscore_conv_op shape')
 
 	return upscore_conv_op
@@ -173,7 +176,7 @@ def loss(logits, labels):
 	#print_tensor_shape( labels_re, 'labels shape after')
 
 	# call cross entropy with logits
-	cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits_re, labels=labels_re, name='cross_entropy')
+	cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels, name='cross_entropy')
 	print_tensor_shape( cross_entropy, 'cross_entropy shape ')
 
 	loss = tf.reduce_mean(cross_entropy, name='1cnn_cross_entropy_mean')
@@ -237,6 +240,7 @@ def evaluation(logits, labels):
 		# It returns a bool tensor with shape [batch_size] that is true for
 		# the examples where the label is in the top k (here k=1)
 		# of all logits for that example.
+		#correct = tf.nn.in_top_k(logits_re, labels_re, 1)
 		correct = tf.nn.in_top_k(logits_re, labels_re, 1)
 		print_tensor_shape( correct, 'correct shape')
 
@@ -253,4 +257,5 @@ with tf.Graph().as_default():
 	logits = inference(images)
 	loss = loss(logits, labels)
 	print_tensor_shape( loss, 'loss shape ')
-	#training(loss, LEARNING_RATE, DECAY_STEPS, DECAY_RATE)
+	train_op = training(loss, LEARNING_RATE, DECAY_STEPS, DECAY_RATE)
+	evaluation(logits, labels)
