@@ -3,6 +3,22 @@ This Repository contains development framework for using tensorflow in a neuroim
 
 Goal: Build a tensorflow framework capable of working with 3D neuroimaging data (nifti)
 
+## Demo
+
+Setup:
+```
+mkdir ~/tensorflow-test
+cd ~/tensorflow-test
+curl -o b40.tar.gz https://gate.nmr.mgh.harvard.edu/filedrop2/index.php?p=1m8hsmv9nkj
+tar zxvf b40.tar.gz
+cd ./bucker40/
+mkdir train
+mv 004 ./train
+mv 008 ./train
+docker pull jupyter/tensorflow-notebook
+docker run --rm -p 8888:8888 -v ~/tensorflow-test:/home/jovyan/work
+```
+
 ## Sample data
 
 Can be [downloaded here](https://gate.nmr.mgh.harvard.edu/filedrop2/index.php?p=1m8hsmv9nkj).  This link will expire on March 25th, 2017.
