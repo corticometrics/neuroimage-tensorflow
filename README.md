@@ -9,7 +9,7 @@ Setup:
 ```
 mkdir ~/tensorflow-test
 cd ~/tensorflow-test
-curl -o b40.tar.gz https://gate.nmr.mgh.harvard.edu/filedrop2/index.php?p=1m8hsmv9nkj
+curl -o b40.tar.gz 'https://gate.nmr.mgh.harvard.edu/filedrop2/index.php?p=1m8hsmv9nkj'
 tar zxvf b40.tar.gz
 cd ./bucker40/
 mkdir train
