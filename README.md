@@ -7,48 +7,37 @@ Goal: Build a tensorflow framework capable of working with 3D neuroimaging data 
 
 Setup:
 ```
-mkdir ~/tensorflow-test
-cd ~/tensorflow-test
+git clone https://github.com/pwighton/neuroimage-tensorflow
+cd neuroimage-tensorflow
 curl -o b40.tar.gz 'https://gate.nmr.mgh.harvard.edu/filedrop2/index.php?p=1m8hsmv9nkj'
 tar zxvf b40.tar.gz
 cd ./bucker40/
 mkdir train
 mv 004 ./train
 mv 008 ./train
-docker run --rm -p 8888:8888 -v ~/tensorflow-test:/notebooks/data gcr.io/tensorflow/tensorflow
-```
-Go to the URL shown
-
-Inside jupyter:
-	- New Terminal
-		- `pip install nibabel`
-
-Should now be able to:
+cd..
 ```
 
-
+Build the docker container
+```
+docker build --no-cache -t tensorflow-tensorboard-nibabel ./docker/
 ```
 
-## Sample data
-
-Can be [downloaded here](https://gate.nmr.mgh.harvard.edu/filedrop2/index.php?p=1m8hsmv9nkj).  This link will expire on March 25th, 2017.
-
-## Pre-reqs
-
-- [Tensorflow](https://www.tensorflow.org/install/)
-For Python 2.7 CPU support (no GPU support)
+Start the docker container (with tensorflow, tensorboard and jupyter), mapping ports for tensorboard and jupyter and mounting the repo dir into `/notebooks/data`
 ```
-sudo apt-get install python-pip python-dev
-pip install tensorflow
-```
-- numpy (TODO)
-- [nibabel](http://nipy.org/nibabel/)
-```
-pip install nibabel
+docker run -it --rm -p 8888:8888 -p 6006:6006 -v ${PWD}:/notebooks/data tensorflow-tensorboard-nibabel
 ```
 
-## Generating a TFrecord
+The jupyter URL is shown in the docker terminal window and should look something like
 ```
-python ./genTFrecord.py ./buckner40 'norm' 'aseg' buckner40.tfrecords
+http://localhost:8888/?token=bca7c05e6447dc94a80e895bb8e97eb811218e6427af8c12
 ```
+
+The tensorboard URL is
+```
+http://localhost:6006/
+```
+
+You should now be able to step through the `neuro-example.ipynb` notebook
+
 
