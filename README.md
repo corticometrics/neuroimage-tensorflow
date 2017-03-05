@@ -15,8 +15,18 @@ cd ./bucker40/
 mkdir train
 mv 004 ./train
 mv 008 ./train
-docker pull jupyter/tensorflow-notebook
-docker run --rm -p 8888:8888 -v ~/tensorflow-test:/home/jovyan/work
+docker run --rm -p 8888:8888 -v ~/tensorflow-test:/notebooks/data gcr.io/tensorflow/tensorflow
+```
+Go to the URL shown
+
+Inside jupyter:
+	- New Terminal
+		- `pip install nibabel`
+
+Should now be able to:
+```
+
+
 ```
 
 ## Sample data
