@@ -1,7 +1,5 @@
 # neuroimage-tensorflow
-This Repository contains a development framework for using tensorflow for labeling 3D neuroimaging voxel data.  It was developed during BrainHack Boston 2017.  This is a work in progess.  It was based off a 2D pixel labelling example given by Nvidia at a Harvard Compute fest in January 2017.
-
-Goal: Build a tensorflow framework capable of working with 3D neuroimaging data (nifti)
+This Repository contains a development framework for using tensorflow for labeling 3D neuroimaging voxel data.  It was developed during BrainHack Boston 2017.  This is a work in progess.  It was based off a 2D pixel labelling example given by Nvidia at a Harvard Compute fest in January 2017.  The referece code is in directory `./ref-example`
 
 ## Demo
 
