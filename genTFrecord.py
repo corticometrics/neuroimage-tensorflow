@@ -33,7 +33,7 @@ def crop_brain(x):
 
 def preproc_brain(x):
 	x = select_hipp(x)
-	#x = crop_brain(x)   
+	x = crop_brain(x)   
 	return x
 
 def listfiles(folder):
@@ -43,8 +43,8 @@ def listfiles(folder):
 
 def gen_filename_pairs(data_dir, v_re, l_re):
 	unfiltered_filelist=list(listfiles(data_dir))
-	input_list = [item for item in unfiltered_filelist if re.search(v_regex,item)]
-	label_list = [item for item in unfiltered_filelist if re.search(l_regex,item)]
+	input_list = [item for item in unfiltered_filelist if re.search(v_re,item)]
+	label_list = [item for item in unfiltered_filelist if re.search(l_re,item)]
 	print("input_list size:    ", len(input_list))
 	print("label_list size:    ", len(label_list))
 	if len(input_list) != len(label_list):
@@ -65,11 +65,10 @@ print("outfile:    ", outfile )
 # Generate a list of (volume_filename, label_filename) tuples
 filename_pairs = gen_filename_pairs(data_dir, v_regex, l_regex)
 
-writer = tf.python_io.TFRecordWriter(outfile)
-
 # To compare original to reconstructed images
 original_images = []
 
+writer = tf.python_io.TFRecordWriter(outfile)
 for v_filename, l_filename in filename_pairs:
 
 	print("Processing:")
@@ -81,7 +80,7 @@ for v_filename, l_filename in filename_pairs:
 	# The volume, in numpy format
 	v_np = v_nii.get_data().astype('int16')
 	# The volume, in raw string format
-	#v_np = crop_brain(v_np)
+	v_np = crop_brain(v_np)
 	# The volume, in raw string format
 	v_raw = v_np.tostring()
 

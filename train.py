@@ -7,18 +7,21 @@
 import tensorflow as tf
 import os, time
 
-INPUT_DIR='./'
+#IMAGE_PIXELS=256*256*256
+#IMAGE_PIXELS_3D_SINGLE_CHAN=[256,256,256,1]
+
+INPUT_DIR='/notebooks/data'
+CHECKPOINT_DIR='/notebooks/data'
 TRAIN_FILE='b40-train.tfrecords'
 VALIDATION_FILE=''
-IMAGE_PIXELS=40*40*40
-IMAGE_PIXELS_3D_SINGLE_CHAN=[40,40,40,1]
+IMG_DIM=40
 NUM_CLASSES=2
 BATCH_SIZE=2
 NUM_EPOCHS=2
 DECAY_STEPS=1.0
 DECAY_RATE=1.0
 LEARNING_RATE=1.0
-CHECKPOINT_DIR='./temp'
+
 
 def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -40,11 +43,11 @@ def read_and_decode(filename_queue):
 	labels = tf.decode_raw(features['label_raw'], tf.int16)
 	
 	#PW 2017/03/03: Zero-center data here?
-	image.set_shape([IMAGE_PIXELS])
-	image  = tf.reshape(image, IMAGE_PIXELS_3D_SINGLE_CHAN)
+	image.set_shape([IMG_DIM*IMG_DIM*IMG_DIM])
+	image  = tf.reshape(image, [IMG_DIM,IMG_DIM,IMG_DIM,1])
 	
-	labels.set_shape([IMAGE_PIXELS])
-	labels  = tf.reshape(image, [40,40,40])
+	labels.set_shape([IMG_DIM*IMG_DIM*IMG_DIM])
+	labels  = tf.reshape(image, [IMG_DIM,IMG_DIM,IMG_DIM])
 	
 	# Dimensions (X, Y, Z, channles)
 	return image, labels
@@ -152,7 +155,7 @@ def inference(images):
 		W_upscore = tf.Variable(tf.truncated_normal([31,31,31,2,2],stddev=0.1,dtype=tf.float32),name='W_upscore')
 		print_tensor_shape( W_upscore, 'W_upscore shape')
 #		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,256,256,256,2],strides=[1,16,16,16,1],padding='SAME',name='upscore_conv_op')
-		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,40,40,40,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
+		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[BATCH_SIZE,IMG_DIM,IMG_DIM,IMG_DIM,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
 #		upscore_conv_op = tf.nn.conv3d_transpose( score_classes_conv_op, W_upscore,output_shape=[1,256,256,256,2],strides=[1,64,64,64,1],padding='SAME',name='upscore_conv_op')
 		print_tensor_shape(upscore_conv_op, 'upscore_conv_op shape')
 	
